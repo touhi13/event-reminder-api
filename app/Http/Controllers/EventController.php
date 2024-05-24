@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendReminderEmail;
 use App\Models\Event;
 use App\Repositories\Event\EventInterface;
 use App\Traits\ApiResponseTrait;
@@ -18,7 +19,7 @@ class EventController extends Controller
     {
         $this->repository = $repository;
     }
-    
+
     /**
      * Display a listing of the resource.
      */
@@ -32,7 +33,21 @@ class EventController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'title'                 => 'required|string|max:255',
+            'description'           => 'nullable|string',
+            'event_date'            => 'required|date',
+            'reminder_recipients'   => 'nullable|array',
+            'reminder_recipients.*' => 'email',
+        ]);
+
+        $event = Event::create($validated);
+
+        // Dispatch the email reminder job
+        $delay = now()->diffInSeconds($event->event_date);
+        SendReminderEmail::dispatch($event)->delay($delay);
+
+        return response()->json($event, 201);
     }
 
     /**
