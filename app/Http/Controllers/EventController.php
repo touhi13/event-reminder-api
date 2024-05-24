@@ -3,22 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
+use App\Repositories\Event\EventInterface;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 
 class EventController extends Controller
 {
+
+    use ApiResponseTrait;
+
+    private EventInterface $repository;
+
+    public function __construct(EventInterface $repository)
+    {
+        $this->repository = $repository;
+    }
+    
     /**
      * Display a listing of the resource.
      */
     public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
     {
         //
     }
@@ -35,14 +39,6 @@ class EventController extends Controller
      * Display the specified resource.
      */
     public function show(Event $event)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Event $event)
     {
         //
     }
