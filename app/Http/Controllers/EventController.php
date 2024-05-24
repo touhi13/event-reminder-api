@@ -6,6 +6,7 @@ use App\Jobs\SendReminderEmail;
 use App\Models\Event;
 use App\Repositories\Event\EventInterface;
 use App\Traits\ApiResponseTrait;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class EventController extends Controller
@@ -33,7 +34,8 @@ class EventController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+
+        $validatedData = $request->validate([
             'title'                 => 'required|string|max:255',
             'description'           => 'nullable|string',
             'event_date'            => 'required|date',
@@ -41,13 +43,27 @@ class EventController extends Controller
             'reminder_recipients.*' => 'email',
         ]);
 
-        $event = Event::create($validated);
+        $data = $this->repository->store($validatedData);
 
         // Dispatch the email reminder job
-        $delay = now()->diffInSeconds($event->event_date);
-        SendReminderEmail::dispatch($event)->delay($delay);
+        $emailData = [
+            'subject'    => "Event Reminder | $data->event_id",
+            'email_body' => view('emails.reminder', compact('data'))->render(),
+            'to'         => $data->reminder_recipients,
+        ];
+        // Ensure event_date is a Carbon instance and both dates are in the same timezone
+        $eventDate = Carbon::parse($data->event_date)->setTimezone('UTC');
+        $now       = Carbon::now()->setTimezone('UTC');
 
-        return response()->json($event, 201);
+        $delay = $eventDate->isFuture() ? $now->diffInSeconds($eventDate) : 0;
+
+        $data->delay = $delay;
+        $data->now   = $now->toISOString();
+
+        SendReminderEmail::dispatch($emailData)->delay($delay);
+
+        return $this->ResponseSuccess($data, null, 'event created successfully', 201, 'success');
+
     }
 
     /**

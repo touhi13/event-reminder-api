@@ -41,14 +41,13 @@ class EventRepo implements EventInterface
         return $query->paginate($filters['per_page'] ?? 10);
     }
 
-    public function save(array $data)
+    public function store(array $data)
     {
-        $Event = new Event();
-        $Event->fill($data);
-        $Event->save();
-        // dd($Event);
-        $Event->load('user');
-        return $Event;
+        $event = new Event();
+        $event->fill($data);
+        $event->save();
+
+        return $event;
     }
 
     public function manage($data, $id)
