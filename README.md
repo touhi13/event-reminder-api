@@ -9,3 +9,16 @@ This is a simple Event Reminder App developed using Laravel. It allows users to 
 ```bash
 git clone https://github.com/your-username/event-reminder-app.git
 ```
+
+2. Navigate to the project directory:
+
+```bash
+cd event-reminder-api
+```
+3. Install composer dependencies:
+
+```bash
+composer install
+```
+
+
