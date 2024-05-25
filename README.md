@@ -6,4 +6,6 @@ This is a simple Event Reminder App developed using Laravel. It allows users to 
 
 1. Clone the repository to your local machine:
 
+```bash
 git clone https://github.com/your-username/event-reminder-app.git
+```
