@@ -3,10 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\SendReminderEmail;
-use App\Models\Event;
 use App\Repositories\Event\EventInterface;
 use App\Traits\ApiResponseTrait;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class EventController extends Controller
@@ -24,9 +22,10 @@ class EventController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $data = $this->repository->index($request->all());
+        return $this->ResponseSuccess($data, null, 'events retrieved successfully', 200, 'success');
     }
 
     /**
@@ -46,19 +45,14 @@ class EventController extends Controller
         $data = $this->repository->store($validatedData);
 
         // Dispatch the email reminder job
+
         $emailData = [
             'subject'    => "Event Reminder | $data->event_id",
             'email_body' => view('emails.reminder', compact('data'))->render(),
             'to'         => $data->reminder_recipients,
         ];
-        // Ensure event_date is a Carbon instance and both dates are in the same timezone
-        $eventDate = Carbon::parse($data->event_date)->setTimezone('UTC');
-        $now       = Carbon::now()->setTimezone('UTC');
 
-        $delay = $eventDate->isFuture() ? $now->diffInSeconds($eventDate) : 0;
-
-        $data->delay = $delay;
-        $data->now   = $now->toISOString();
+        $delay = now()->diffInSeconds($data->event_date);
 
         SendReminderEmail::dispatch($emailData)->delay($delay);
 
@@ -69,24 +63,35 @@ class EventController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Event $event)
+    public function show($eventId)
     {
-        //
+        $event = $this->repository->show($eventId);
+        return $this->ResponseSuccess($event, null, 'event retrieved successfully', 200, 'success');
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Event $event)
+    public function update(Request $request, $eventId)
     {
-        //
+        $validatedData = $request->validate([
+            'title'                 => 'sometimes|string|max:255',
+            'description'           => 'nullable|string',
+            'event_date'            => 'sometimes|date',
+            'reminder_recipients'   => 'nullable|array',
+            'reminder_recipients.*' => 'email',
+        ]);
+
+        $event = $this->repository->update($eventId, $validatedData);
+        return $this->ResponseSuccess($event, null, 'event updated successfully', 200, 'success');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Event $event)
+    public function destroy($eventId)
     {
-        //
+        $this->repository->destroy($eventId);
+        return $this->ResponseSuccess(null, null, 'event deleted successfully', 200, 'success');
     }
 }

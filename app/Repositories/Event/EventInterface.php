@@ -4,8 +4,9 @@ namespace App\Repositories\Event;
 
 interface EventInterface
 {
-    public function all(array $data);
+    public function index(array $data);
     public function store(array $data);
-    public function manage($data, $id);
-    public function eventsCounts();
+    public function show($eventId);
+    public function update($eventId, array $data);
+    public function destroy($eventId);
 }

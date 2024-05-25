@@ -3,9 +3,7 @@
 namespace App\Repositories\Event;
 
 use App\Models\Event;
-use App\Repositories\Event\EventInterface;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class EventRepo implements EventInterface
 {
@@ -15,27 +13,24 @@ class EventRepo implements EventInterface
     {
         $this->model = $model;
     }
-    public function all($filters = [])
-    {
 
-        $query = $this->model->with('user')
+    public function index($filters = [])
+    {
+        $query = $this->model
             ->orderBy('created_at', 'desc')
             ->when(isset($filters['search_text']), function ($query) use ($filters) {
-                $query->whereHas('user', function ($subQuery) use ($filters) {
-                    $subQuery->where('name', 'like', '%' . $filters['search_text'] . '%');
-                });
-            })
-            ->when(isset($filters['leave_type']), function ($query) use ($filters) {
-                $query->where('leave_type', $filters['leave_type']);
+                $query->where('title', 'like', '%' . $filters['search_text'] . '%');
             })
             ->when(isset($filters['status']), function ($query) use ($filters) {
-                $query->where('status', $filters['status']);
-            })
-            ->when(isset($filters['start_date']) && isset($filters['end_date']), function ($query) use ($filters) {
-                $query->whereBetween('created_at', [$filters['start_date'], $filters['end_date']]);
-            })
-            ->when(auth()->user()->role === 'employee', function ($query) {
-                $query->where('user_id', auth()->id());
+                if ($filters['status'] == 'complete') {
+                    $query->where(function ($query) {
+                        $query->where('event_date', '<', Carbon::now())
+                            ->orWhere('completed', true);
+                    });
+                } elseif ($filters['status'] == 'upcoming') {
+                    $query->where('event_date', '>=', Carbon::now())
+                        ->where('completed', false);
+                }
             });
 
         return $query->paginate($filters['per_page'] ?? 10);
@@ -50,36 +45,23 @@ class EventRepo implements EventInterface
         return $event;
     }
 
-    public function manage($data, $id)
+    public function show($eventId)
     {
-        $Event = Event::with('user')->find($id);
-
-        if (!$Event) {
-            return null; // Return null if leave request not found
-        }
-
-        if ($data['action'] === 'Approved' || $data['action'] === 'Rejected') {
-            $Event->update([
-                'status'        => $data['action'],
-                'admin_comment' => $data['admin_comment'] ?? null,
-            ]);
-        } else {
-            return null;
-        }
-
-        return $Event;
+        return $this->model->findOrFail($eventId);
     }
 
-    public function eventsCounts()
+    public function update($eventId, array $data)
     {
-        $result = DB::table('leave_requests')
-            ->selectRaw('COUNT(*) as total_count,
-                 SUM(CASE WHEN status = "Pending" THEN 1 ELSE 0 END) as pending_count,
-                 SUM(CASE WHEN status = "Approved" THEN 1 ELSE 0 END) as approved_count,
-                 SUM(CASE WHEN status = "Rejected" THEN 1 ELSE 0 END) as rejected_count')
-            ->first();
+        $event = $this->model->findOrFail($eventId);
+        $event->fill($data);
+        $event->save();
 
-            return $result;
+        return $event;
     }
 
+    public function destroy($eventId)
+    {
+        $event = $this->model->findOrFail($eventId);
+        $event->delete();
+    }
 }
