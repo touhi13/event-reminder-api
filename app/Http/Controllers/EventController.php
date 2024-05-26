@@ -56,8 +56,8 @@ class EventController extends Controller
         // $delay = now()->diffInSeconds(Carbon::parse($data->event_date)->setTimezone('UTC'));
 
 
-        $data['delay'] = $delay;
-        $data['now']   = now();
+        // $data['delay'] = $delay;
+        // $data['now']   = now();
 
         SendReminderEmail::dispatch($emailData)->delay($delay);
 
