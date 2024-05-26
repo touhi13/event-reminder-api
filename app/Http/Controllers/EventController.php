@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\SendReminderEmail;
 use App\Repositories\Event\EventInterface;
 use App\Traits\ApiResponseTrait;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class EventController extends Controller
@@ -51,7 +52,9 @@ class EventController extends Controller
             'to'         => $data->reminder_recipients,
         ];
 
-        $delay = now()->diffInSeconds($data->event_date);
+        // $delay = now()->diffInSeconds($data->event_date);
+        $delay = now()->diffInSeconds(Carbon::parse($data->event_date)->setTimezone('UTC'));
+
 
         $data['delay'] = $delay;
         $data['now']   = now();
