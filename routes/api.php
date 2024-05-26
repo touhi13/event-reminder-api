@@ -21,7 +21,9 @@ Route::prefix('v1')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('logout', [AuthController::class, 'logout']);
 
-    Route::apiResource('event', EventController::class);
-    Route::post('event/import', [EventController::class, 'import']);
-    Route::put('/event/update-status/{eventId}', [EventController::class, 'updateStatus']);
+    Route::group(['middleware' => ['token.verify']], function () {
+        Route::apiResource('event', EventController::class);
+        Route::post('event/import', [EventController::class, 'import']);
+        Route::put('/event/update-status/{eventId}', [EventController::class, 'updateStatus']);
+    });
 });
