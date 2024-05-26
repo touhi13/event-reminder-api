@@ -75,7 +75,17 @@ php artisan queue:table
 ```bash
 php artisan migrate
 ```
+10. Seed the user table with sample data and create an admin user:
 
+```bash
+php artisan db:seed
+```
+
+11. Generate a JWT secret key for API authentication:
+
+```bash
+php artisan jwt:secret
+```
 
 ## Usage
 
@@ -93,7 +103,7 @@ php artisan queue:work
 
 4. Register a new account or log in with existing credentials.
 
-5. Create, update, delete, and view event reminders as needed. Reminder emails will be sent to specified recipients based on the event details.
+5. Create, update, delete, view and import event reminders as needed. Reminder emails will be sent to specified recipients based on the event details.
 
 ## Additional Configuration
 
