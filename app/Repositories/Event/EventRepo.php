@@ -2,8 +2,11 @@
 
 namespace App\Repositories\Event;
 
+use App\Imports\EventsImport;
 use App\Models\Event;
 use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
+use Maatwebsite\Excel\Facades\Excel;
 
 class EventRepo implements EventInterface
 {
@@ -17,15 +20,14 @@ class EventRepo implements EventInterface
     public function index($filters = [])
     {
         $query = $this->model
-            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->when(isset($filters['search_text']), function ($query) use ($filters) {
                 $query->where('title', 'like', '%' . $filters['search_text'] . '%');
             })
             ->when(isset($filters['status']), function ($query) use ($filters) {
                 if ($filters['status'] == 'complete') {
                     $query->where(function ($query) {
-                        $query->where('event_date', '<', Carbon::now())
-                            ->orWhere('completed', true);
+                        $query->where('completed', true);
                     });
                 } elseif ($filters['status'] == 'upcoming') {
                     $query->where('event_date', '>=', Carbon::now())
@@ -63,5 +65,30 @@ class EventRepo implements EventInterface
     {
         $event = $this->model->findOrFail($eventId);
         $event->delete();
+    }
+
+    public function import(UploadedFile $file): array
+    {
+        $import = new EventsImport();
+
+        // Import events from the CSV file
+        Excel::import($import, $file);
+
+        // Retrieve the imported events
+        return $import->insertedEvents;
+    }
+
+    public function updateStatus($eventId)
+    {
+        $event = $this->model->findOrFail($eventId);
+
+        if ($event->completed) {
+            return false;
+        }
+
+        $event->completed = 1;
+        $event->save();
+
+        return $event;
     }
 }

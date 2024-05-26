@@ -45,7 +45,6 @@ class EventController extends Controller
         $data = $this->repository->store($validatedData);
 
         // Dispatch the email reminder job
-
         $emailData = [
             'subject'    => "Event Reminder | $data->event_id",
             'email_body' => view('emails.reminder', compact('data'))->render(),
@@ -94,4 +93,40 @@ class EventController extends Controller
         $this->repository->destroy($eventId);
         return $this->ResponseSuccess(null, null, 'event deleted successfully', 200, 'success');
     }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt',
+        ]);
+
+        $importedEvents = $this->repository->import($request->file('file'));
+
+        // Trigger email reminders for each imported event
+        foreach ($importedEvents as $data) {
+            $emailData = [
+                'subject'    => "Event Reminder | $data->event_id",
+                'email_body' => view('emails.reminder', compact('data'))->render(),
+                'to'         => $data->reminder_recipients,
+            ];
+
+            $delay = now()->diffInSeconds($data->event_date);
+
+            SendReminderEmail::dispatch($emailData)->delay($delay);
+        }
+
+        return $this->ResponseSuccess($importedEvents, null, 'Events imported successfully', 200, 'success');
+    }
+
+    public function updateStatus(Request $request, $eventId)
+    {
+        $event = $this->repository->updateStatus($eventId);
+
+        if (!$event) {
+            return $this->ResponseError(null, null, 'Event is already complete and cannot be changed.', 400);
+        }
+
+        return $this->ResponseSuccess($event, null, 'Event status updated successfully');
+    }
+
 }

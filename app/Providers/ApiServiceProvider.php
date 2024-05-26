@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Repositories\Auth\AuthInterface;
+use App\Repositories\Auth\AuthRepo;
 use App\Repositories\Event\EventInterface;
 use App\Repositories\Event\EventRepo;
 use Illuminate\Support\Facades\Schema;
@@ -14,6 +16,11 @@ class ApiServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(
+            AuthInterface::class,
+            AuthRepo::class
+        );
+
         $this->app->bind(
             EventInterface::class,
             EventRepo::class
