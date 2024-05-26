@@ -53,6 +53,9 @@ class EventController extends Controller
 
         $delay = now()->diffInSeconds($data->event_date);
 
+        $data['delay'] = $delay;
+        $data['now']   = now();
+
         SendReminderEmail::dispatch($emailData)->delay($delay);
 
         return $this->ResponseSuccess($data, null, 'event created successfully', 201, 'success');
