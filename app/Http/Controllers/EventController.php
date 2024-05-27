@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreEventRequest;
+use App\Http\Resources\EventResource;
 use App\Jobs\SendReminderEmail;
 use App\Repositories\Event\EventInterface;
 use App\Traits\ApiResponseTrait;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class EventController extends Controller
@@ -32,18 +33,9 @@ class EventController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreEventRequest $request)
     {
-
-        $validatedData = $request->validate([
-            'title'                 => 'required|string|max:255',
-            'description'           => 'nullable|string',
-            'event_date'            => 'required|date',
-            'reminder_recipients'   => 'nullable|array',
-            'reminder_recipients.*' => 'email',
-        ]);
-
-        $data = $this->repository->store($validatedData);
+        $data = $this->repository->store($request->all());
 
         // Dispatch the email reminder job
         $emailData = [
@@ -53,15 +45,10 @@ class EventController extends Controller
         ];
 
         $delay = now()->diffInSeconds($data->event_date);
-        // $delay = now()->diffInSeconds(Carbon::parse($data->event_date)->setTimezone('UTC'));
-
-
-        // $data['delay'] = $delay;
-        // $data['now']   = now();
 
         SendReminderEmail::dispatch($emailData)->delay($delay);
 
-        return $this->ResponseSuccess($data, null, 'event created successfully', 201, 'success');
+        return $this->ResponseSuccess(new EventResource($data), null, 'event created successfully', 201, 'success');
 
     }
 
@@ -71,24 +58,16 @@ class EventController extends Controller
     public function show($eventId)
     {
         $event = $this->repository->show($eventId);
-        return $this->ResponseSuccess($event, null, 'event retrieved successfully', 200, 'success');
+        return $this->ResponseSuccess(new EventResource($event), null, 'event retrieved successfully', 200, 'success');
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $eventId)
+    public function update(StoreEventRequest $request, $eventId)
     {
-        $validatedData = $request->validate([
-            'title'                 => 'sometimes|string|max:255',
-            'description'           => 'nullable|string',
-            'event_date'            => 'sometimes|date',
-            'reminder_recipients'   => 'nullable|array',
-            'reminder_recipients.*' => 'email',
-        ]);
-
-        $event = $this->repository->update($eventId, $validatedData);
-        return $this->ResponseSuccess($event, null, 'event updated successfully', 200, 'success');
+        $event = $this->repository->update($eventId, $request->all());
+        return $this->ResponseSuccess(new EventResource($event), null, 'event updated successfully', 200, 'success');
     }
 
     /**
@@ -132,7 +111,7 @@ class EventController extends Controller
             return $this->ResponseError(null, null, 'Event is already complete and cannot be changed.', 400);
         }
 
-        return $this->ResponseSuccess($event, null, 'Event status updated successfully');
+        return $this->ResponseSuccess(new EventResource($event), null, 'Event status updated successfully');
     }
 
 }
